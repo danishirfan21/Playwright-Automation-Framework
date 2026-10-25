@@ -41,8 +41,14 @@ jobs:
       - run: npm ci
 
       - name: Install browsers
-        run: npx playwright install --with-deps
-        timeout-minutes: 5
+        # The apt mirror on some runners is intermittently very slow, so cap each attempt and retry.
+        run: |
+          for attempt in 1 2 3; do
+            timeout 240 npx playwright install --with-deps && exit 0
+            echo "Browser install attempt $attempt failed, retrying..."
+          done
+          exit 1
+        timeout-minutes: 15
 
       - name: Run tests (shard ${{ matrix.shard }}/4)
         run: npx playwright test --shard=${{ matrix.shard }}/4
