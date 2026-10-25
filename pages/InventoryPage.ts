@@ -56,10 +56,9 @@ export class InventoryPage {
   async expectNamesSorted(direction: 'asc' | 'desc'): Promise<void> {
     const names = this.page.locator('.inventory_item_name');
     await expect(names.first()).toBeVisible();
-    const actual = await names.allTextContents();
-    const expected = [...actual].sort((a, b) => a.localeCompare(b));
+    const expected = [...(await names.allTextContents())].sort((a, b) => a.localeCompare(b));
     if (direction === 'desc') expected.reverse();
-    expect(actual).toEqual(expected);
+    await expect(names).toHaveText(expected);
   }
 
   async expectPricesSorted(direction: 'asc' | 'desc'): Promise<void> {

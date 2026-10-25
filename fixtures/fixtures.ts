@@ -45,6 +45,8 @@ export const test = base.extend<Fixtures>({
   // A fresh, unique record per test — avoids cross-test collisions when tests
   // run in parallel, and keeps the "what data does this test use" question
   // answered by the factory, not copy-pasted literals in the test body.
+  // Playwright requires an object-destructuring first argument to detect fixture dependencies.
+  // eslint-disable-next-line no-empty-pattern
   checkoutInfo: async ({}, use) => {
     await use(buildCheckoutInfo());
   },
