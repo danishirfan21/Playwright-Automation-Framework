@@ -31,6 +31,6 @@ test.describe('Login', () => {
 
   test('empty password is rejected', async ({ loginPage }) => {
     await loginPage.login(env.users.standard.username, '');
-    await loginPage.expectLoginError('Password is required');
+    await loginPage.expectLoginError('THIS IS A DELIBERATE FAILURE');
   });
 });
