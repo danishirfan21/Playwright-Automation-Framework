@@ -46,6 +46,11 @@ jobs:
           for attempt in 1 2 3; do
             timeout 240 npx playwright install --with-deps && exit 0
             echo "Browser install attempt $attempt failed, retrying..."
+            # timeout only kills npx; an orphaned apt-get would keep the dpkg lock and fail the retry.
+            sudo pkill -x apt-get || true
+            sudo pkill -x dpkg || true
+            sleep 3
+            sudo dpkg --configure -a || true
           done
           exit 1
         timeout-minutes: 15
