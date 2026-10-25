@@ -2,6 +2,8 @@ name: Playwright Tests
 
 on:
   pull_request:
+  push:
+    branches: [main]
 
 jobs:
   lint:
@@ -38,7 +40,20 @@ jobs:
 
       - run: npm ci
 
-      - run: npx playwright install --with-deps
+      - name: Install browsers
+        # The apt mirror on some runners is intermittently very slow, so cap each attempt and retry.
+        run: |
+          for attempt in 1 2 3; do
+            timeout 240 npx playwright install --with-deps && exit 0
+            echo "Browser install attempt $attempt failed, retrying..."
+            # timeout only kills npx; an orphaned apt-get would keep the dpkg lock and fail the retry.
+            sudo pkill -x apt-get || true
+            sudo pkill -x dpkg || true
+            sleep 3
+            sudo dpkg --configure -a || true
+          done
+          exit 1
+        timeout-minutes: 15
 
       - name: Run tests (shard ${{ matrix.shard }}/4)
         run: npx playwright test --shard=${{ matrix.shard }}/4
