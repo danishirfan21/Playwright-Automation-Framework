@@ -44,7 +44,7 @@ npm run typecheck
 | Variable | Default |
 |---|---|
 | `BASE_URL` | `https://www.saucedemo.com` |
-| `STANDARD_USER` / `LOCKED_OUT_USER` / `PROBLEM_USER` / `PERFORMANCE_GLITCH_USER` | SauceDemo's public demo usernames |
+| `STANDARD_USER` / `LOCKED_OUT_USER` / `PROBLEM_USER` / `PERFORMANCE_GLITCH_USER` / `ERROR_USER` | SauceDemo's public demo usernames |
 | `STANDARD_PASSWORD` | SauceDemo's public demo password |
 
 ## CI
