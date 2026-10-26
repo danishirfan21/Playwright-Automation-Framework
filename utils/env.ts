@@ -23,6 +23,10 @@ export const env = {
       username: required('PROBLEM_USER', 'problem_user'),
       password: required('STANDARD_PASSWORD', 'secret_sauce'),
     },
+    performanceGlitch: {
+      username: required('PERFORMANCE_GLITCH_USER', 'performance_glitch_user'),
+      password: required('STANDARD_PASSWORD', 'secret_sauce'),
+    },
   },
   isCI: !!process.env.CI,
 };
