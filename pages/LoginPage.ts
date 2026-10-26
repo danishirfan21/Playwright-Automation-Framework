@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { expectNoAccessibilityViolations } from '../utils/accessibility';
 
 export class LoginPage {
   readonly page: Page;
@@ -34,5 +35,9 @@ export class LoginPage {
 
   async expectLoggedIn(): Promise<void> {
     await expect(this.page).toHaveURL(/inventory\.html/);
+  }
+
+  async expectNoAccessibilityViolations(): Promise<void> {
+    await expectNoAccessibilityViolations(this.page);
   }
 }

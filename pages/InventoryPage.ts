@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { expectNoAccessibilityViolations } from '../utils/accessibility';
 
 export class InventoryPage {
   readonly page: Page;
@@ -76,5 +77,9 @@ export class InventoryPage {
     const expected = [...actual].sort((a, b) => a - b);
     if (direction === 'desc') expected.reverse();
     expect(actual).toEqual(expected);
+  }
+
+  async expectNoAccessibilityViolations(): Promise<void> {
+    await expectNoAccessibilityViolations(this.page);
   }
 }
