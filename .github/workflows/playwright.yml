@@ -26,6 +26,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Browsers and system libraries come preinstalled, which avoids the flaky apt mirror.
+    # Keep this tag in sync with the exact @playwright/test version in package.json.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    env:
+      HOME: /root
     strategy:
       fail-fast: false
       matrix:
@@ -33,27 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
       - run: npm ci
-
-      - name: Install browsers
-        # The apt mirror on some runners is intermittently very slow, so cap each attempt and retry.
-        run: |
-          for attempt in 1 2 3; do
-            timeout 240 npx playwright install --with-deps && exit 0
-            echo "Browser install attempt $attempt failed, retrying..."
-            # timeout only kills npx; an orphaned apt-get would keep the dpkg lock and fail the retry.
-            sudo pkill -x apt-get || true
-            sudo pkill -x dpkg || true
-            sleep 3
-            sudo dpkg --configure -a || true
-          done
-          exit 1
-        timeout-minutes: 15
 
       - name: Run tests (shard ${{ matrix.shard }}/4)
         run: npx playwright test --shard=${{ matrix.shard }}/4
