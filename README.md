@@ -49,4 +49,4 @@ npm run typecheck
 
 ## CI
 
-`.github/workflows/playwright.yml` runs on pull requests, splits the suite across 4 shards, and uploads each failing shard's HTML report as an artifact (`playwright-report-shard-N`, kept 14 days).
+`.github/workflows/playwright.yml` runs on pull requests, splits the suite across 4 shards, and each shard uploads a blob report (`blob-report-N`). A final `merge-reports` job combines them into one HTML report, uploaded as `playwright-html-report` when any shard fails (kept 14 days).
