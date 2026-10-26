@@ -2,9 +2,9 @@
 
 ## Design notes
 
-Per the Stage 2 task brief, Stage 1 originally gave the agent Bash access guarded by a read-only hook. The final agent, as it stands in this repo, has no Bash and no hook at all: `.claude/agents/test-impact-reviewer.md`'s frontmatter lists `tools: Read, Grep, Glob`, and its body states directly, "You have no Bash and no hook: you cannot run tests, run git, or execute any command." Both of those are verified against the agent file as committed. The Stage 1 detail (Bash behind a hook guard) is carried over from the task brief itself; it predates this session and nothing in the current repository confirms or contradicts it, since no hook file of any kind exists under `.claude/`.
+An earlier iteration of this agent had Bash access, guarded by a read only hook. The final agent, as it stands in this repo, has no Bash and no hook at all: `.claude/agents/test-impact-reviewer.md`'s frontmatter lists `tools: Read, Grep, Glob`, and its body states directly, "You have no Bash and no hook: you cannot run tests, run git, or execute any command." Both of those are verified against the agent file as committed.
 
-Step 0's tool verification below (the agent listing `Read, Grep, Glob, SubagentHandback` and stating Bash was not among them) was the agent's own self-report, not an independent check from outside the agent.
+Step 0's tool verification below, the agent listing `Read, Grep, Glob, SubagentHandback` and stating Bash was not among them, was the agent's own self-report, not an independent check from outside the agent.
 
 ## Setup
 
