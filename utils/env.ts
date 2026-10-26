@@ -27,6 +27,10 @@ export const env = {
       username: required('ERROR_USER', 'error_user'),
       password: required('STANDARD_PASSWORD', 'secret_sauce'),
     },
+    visual: {
+      username: required('VISUAL_USER', 'visual_user'),
+      password: required('STANDARD_PASSWORD', 'secret_sauce'),
+    },
     performanceGlitch: {
       username: required('PERFORMANCE_GLITCH_USER', 'performance_glitch_user'),
       password: required('STANDARD_PASSWORD', 'secret_sauce'),

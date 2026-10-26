@@ -79,6 +79,13 @@ export class InventoryPage {
     expect(actual).toEqual(expected);
   }
 
+  async expectPrices(expected: Record<string, number>): Promise<void> {
+    await expect(this.inventoryItems.first()).toBeVisible();
+    for (const [name, price] of Object.entries(expected)) {
+      await expect(this.itemByName(name).locator('.inventory_item_price')).toHaveText(`$${price}`);
+    }
+  }
+
   async expectNoAccessibilityViolations(): Promise<void> {
     await expectNoAccessibilityViolations(this.page);
   }
