@@ -6,6 +6,7 @@ export class InventoryPage {
   readonly cartBadge: Locator;
   readonly cartLink: Locator;
   readonly sortDropdown: Locator;
+  readonly productImages: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -13,6 +14,7 @@ export class InventoryPage {
     this.cartBadge = page.locator('.shopping_cart_badge');
     this.cartLink = page.locator('.shopping_cart_link');
     this.sortDropdown = page.locator('[data-test="product-sort-container"]');
+    this.productImages = page.locator('.inventory_item_img img');
   }
 
   private itemByName(name: string): Locator {
@@ -59,6 +61,12 @@ export class InventoryPage {
     const expected = [...(await names.allTextContents())].sort((a, b) => a.localeCompare(b));
     if (direction === 'desc') expected.reverse();
     await expect(names).toHaveText(expected);
+  }
+
+  async expectUniqueProductImages(): Promise<void> {
+    await expect(this.productImages.first()).toBeVisible();
+    const sources = await this.productImages.evaluateAll((imgs) => imgs.map((img) => img.getAttribute('src')));
+    expect(new Set(sources).size).toBe(sources.length);
   }
 
   async expectPricesSorted(direction: 'asc' | 'desc'): Promise<void> {

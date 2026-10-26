@@ -19,7 +19,7 @@ export default defineConfig({
   workers: env.isCI ? 4 : undefined,
 
   reporter: env.isCI
-    ? [['html', { open: 'never' }], ['github'], ['list']]
+    ? [['blob'], ['github'], ['list']]
     : [['html', { open: 'on-failure' }], ['list']],
 
   use: {
