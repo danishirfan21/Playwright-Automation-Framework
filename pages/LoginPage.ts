@@ -32,7 +32,7 @@ export class LoginPage {
     await expect(this.errorMessage).toContainText(message);
   }
 
-  async expectLoggedIn(): Promise<void> {
-    await expect(this.page).toHaveURL(/inventory\.html/);
+  async expectLoggedIn(options?: { timeout?: number }): Promise<void> {
+    await expect(this.page).toHaveURL(/inventory\.html/, options);
   }
 }
