@@ -1,5 +1,7 @@
 # SauceDemo Playwright Framework
 
+[![Playwright Tests](https://github.com/danishirfan21/Playwright-Automation-Framework/actions/workflows/playwright.yml/badge.svg)](https://github.com/danishirfan21/Playwright-Automation-Framework/actions/workflows/playwright.yml)
+
 End-to-end test framework for [saucedemo.com](https://www.saucedemo.com), built with Playwright and TypeScript.
 
 ## Setup
@@ -7,7 +9,7 @@ End-to-end test framework for [saucedemo.com](https://www.saucedemo.com), built 
 ```bash
 npm install
 npx playwright install chromium   # add firefox webkit for all browsers
-cp .env.example .env              # optional; defaults point at saucedemo.com
+cp .env.example .env              # optional, defaults point at saucedemo.com
 ```
 
 ## Running tests
@@ -20,33 +22,80 @@ npm run test:ui                       # Playwright UI mode
 npm run test:debug                    # step through with the Inspector
 npm run report                        # open the last HTML report
 npm run typecheck
+npm run lint
 ```
 
 ## Structure
 
 | Folder | Purpose |
 |---|---|
-| `tests/` | Specs (`login`, `cart`, `checkout`) and `auth.setup.ts` |
-| `pages/` | Page objects: readonly locators, action methods, separate `expect*` assertion methods |
+| `tests/` | Specs: `login`, `cart`, `checkout`, `accessibility`, the known-defect user suites (`problem`, `error`, `visual`, `performance_glitch`), and `auth.setup.ts` |
+| `pages/` | Page objects: readonly locators, action methods, and separate `expect*` assertion methods |
 | `fixtures/` | Custom `test` that injects page objects and generated test data |
 | `test-data/` | Faker-backed data factory |
-| `utils/` | Typed env var access |
+| `utils/` | Typed env var access and the shared accessibility-check helper |
 
-## Key design decisions
+## What it tests
 
-- **Auth via a setup project.** `auth.setup.ts` logs in once and saves `storageState`; the browser projects depend on it, so tests start authenticated. SauceDemo has no auth API, so this is the UI-login equivalent of an API token fixture. Login specs override `storageState` to start logged out.
-- **Fixtures over global setup.** Each test gets isolated page objects and fresh data, with automatic teardown.
-- **Retries:** 0 locally, 2 on CI (`CI` env var). CI uses 4 workers per shard.
-- **POM split:** actions mutate state, `expect*` methods assert. Tests contain no raw locators.
+`login.spec.ts` covers `standard_user` (valid login) and `locked_out_user` (lockout error), plus wrong-password and empty-field validation. `cart.spec.ts` and `checkout.spec.ts` run the full cart and checkout flow as `standard_user` (the account `auth.setup.ts` logs in as and caches via `storageState`).
+
+Four of SauceDemo's other demo accounts each exercise a different known defect:
+
+| Account | What it covers |
+|---|---|
+| `problem_user` | Logs in and sees the product list; separately, known defects: every product renders the same placeholder image, the Z-to-A sort does not reorder items, and checkout rejects valid details because the last name field is not populated |
+| `error_user` | Logs in and can add one item to the cart; separately, known defects: "Add to cart" no-ops for several specific products, sorting throws instead of reordering, and Finish does not complete an order |
+| `visual_user` | Logs in and can add an item to the cart; separately, a known defect: product prices are replaced with random values on every page load |
+| `performance_glitch_user` | Logs in (with an extended timeout on the post-login assertion only) and can add an item to the cart |
+
+### The `test.fail(true, reason)` pattern
+
+Each known-defect test asserts the behavior that should be correct, not the buggy behavior. `test.fail(true, reason)` tells Playwright the test is expected to fail right now: it passes (in the "expected to fail, and did" sense) while the bug exists, and turns red the moment the underlying SauceDemo bug is fixed, which is the signal to remove the annotation. This documents the defect in the suite itself instead of skipping or deleting the test.
+
+## Accessibility
+
+`accessibility.spec.ts` checks the login page and the inventory page for WCAG 2.0 Level A and AA violations (axe-core tags `wcag2a`, `wcag2aa`), using the shared `expectNoAccessibilityViolations` helper in `utils/accessibility.ts` (built on `@axe-core/playwright`). `LoginPage` and `InventoryPage` each expose an `expectNoAccessibilityViolations()` method that calls into it.
+
+## Architecture decisions
+
+| Decision | Alternative rejected | Reason |
+|---|---|---|
+| A `setup` project logs in once via the UI and caches `storageState`; other projects depend on it | Logging in inside each test's `beforeEach` | SauceDemo has no auth API to call directly, so a one-time UI login plus a cached `storageState` is the closest equivalent to an API-token setup, instead of repeating the login flow at the start of every spec |
+| Fixtures inject page objects and test data per test | A global setup script | Fixtures give each test an isolated instance instead of shared state tests have to coordinate around, run teardown automatically after each test even on failure, and let a spec's function signature show exactly which fixtures it needs |
+| Checkout info is generated by a Faker-backed factory (`test-data/factory.ts`), called from a fixture | Hardcoded literal values in each test | Centralizing generation in one place means no test hardcodes checkout details, every run gets unique data so parallel tests cannot collide on the same values, and a future shape change to checkout info only touches the factory |
+| Actions and assertions live in separate methods (`addItemToCart` versus `expectCartCount`), with no raw locators in test files | Assertions inline in the test body, or mixed into action methods | Keeps each page object's surface split into what mutates state and what checks it; the ESLint config also depends on this convention, treating any method matching `expect[A-Z]` as an assertion for the `playwright/expect-expect` rule |
+| `visual_user`'s known defect is asserted through `InventoryPage.expectPrices` (checking the catalogue prices as text) rather than a screenshot comparison | Visual/screenshot diffing | The code comment in `visual-user.spec.ts` states prices are "the reliably detectable one"; screenshot comparison is not used here |
+| CI runs tests inside the `mcr.microsoft.com/playwright:v1.63.0-noble` container, with the tag kept in sync with the `@playwright/test` version in `package.json` | Installing browsers on a bare runner with `npx playwright install` | The workflow comment states this avoids the flaky apt mirror that ad-hoc browser installs can hit, and keeps the installed browsers in lockstep with the test runner version |
+
+## CI
+
+`.github/workflows/playwright.yml` runs on every pull request and on every push to `main`:
+
+- **`lint`**: `npm run lint` (ESLint) and `npm run typecheck` (`tsc --noEmit`).
+- **`test`**: the suite split across 4 shards (`--shard=N/4`), run inside the pinned Playwright container; each shard uploads its blob report as `blob-report-N` (kept 1 day).
+- **`merge-reports`**: runs after `test`, merges the shard blob reports into one HTML report, and uploads it as `playwright-html-report` (kept 14 days) only when the `test` job's result was a failure.
+
+`main` has branch protection enabled: changes require a pull request, and all 6 jobs (`lint`, `test` for each of the 4 shards, `merge-reports`) must pass before merging.
 
 ## Configuration
+
+Copy `.env.example` to `.env` for local runs; CI should inject these as real secrets or environment variables instead.
 
 | Variable | Default |
 |---|---|
 | `BASE_URL` | `https://www.saucedemo.com` |
-| `STANDARD_USER` / `LOCKED_OUT_USER` / `PROBLEM_USER` / `PERFORMANCE_GLITCH_USER` / `ERROR_USER` / `VISUAL_USER` | SauceDemo's public demo usernames |
-| `STANDARD_PASSWORD` | SauceDemo's public demo password |
+| `STANDARD_USER` | `standard_user` |
+| `STANDARD_PASSWORD` | `secret_sauce` |
+| `LOCKED_OUT_USER` | `locked_out_user` |
+| `PROBLEM_USER` | `problem_user` |
+| `PERFORMANCE_GLITCH_USER` | `performance_glitch_user` |
+| `ERROR_USER` | `error_user` |
+| `VISUAL_USER` | `visual_user` |
 
-## CI
+## AI-assisted QA: test-impact-reviewer
 
-`.github/workflows/playwright.yml` runs on pull requests, splits the suite across 4 shards, and each shard uploads a blob report (`blob-report-N`). A final `merge-reports` job combines them into one HTML report, uploaded as `playwright-html-report` when any shard fails (kept 14 days).
+`.claude/agents/test-impact-reviewer.md` defines a Claude Code sub-agent that, given a diff limited to `pages/` and `fixtures/`, determines which specs under `tests/` are affected, including transitively through page-object method calls (for example, a locator renamed inside a private helper method that several public, spec-called methods depend on).
+
+Its tools are restricted to `Read`, `Grep`, and `Glob`: no `Bash`. It cannot run `git`, so it cannot compute a diff itself; the caller must supply the diff directly in the prompt.
+
+See [docs/test-impact-reviewer.md](docs/test-impact-reviewer.md) for how the agent's prompt was developed and verified against a mutation test.
