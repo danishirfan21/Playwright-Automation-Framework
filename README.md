@@ -2,6 +2,8 @@
 
 [![Playwright Tests](https://github.com/danishirfan21/Playwright-Automation-Framework/actions/workflows/playwright.yml/badge.svg)](https://github.com/danishirfan21/Playwright-Automation-Framework/actions/workflows/playwright.yml)
 
+See also: [Playwright-Api-Test-Suite](https://github.com/danishirfan21/Playwright-Api-Test-Suite), the Restful-Booker API test suite.
+
 End-to-end test framework for [saucedemo.com](https://www.saucedemo.com), built with Playwright and TypeScript.
 
 ## Setup
