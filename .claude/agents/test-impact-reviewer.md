@@ -40,3 +40,13 @@ Report format:
 - **Summary**: one line per changed symbol, tagged with every tag that applies, written as the literal bracketed tags themselves: [TRANSITIVE IMPACT] / [UNCOVERED] / [LIKELY BREAK] / [NO USAGE FOUND]. A symbol can and often will carry more than one tag — list all that apply, not just the first that comes to mind. The Summary tag list for a symbol is a direct restatement of that symbol's own Details conclusion, nothing more: finish ALL your Grep/Read research and reach a final conclusion for every symbol FIRST, privately, before writing any part of the report — then write the Details section, then copy forward into the Summary only the tags that section actually concluded apply. If your Details reasoning says a tag does NOT apply (e.g. "it does reach specs transitively, so [UNCOVERED] does not apply here"), that tag must not appear in the Summary line for that symbol — a Summary tag that contradicts its own Details paragraph is a bug in the report, not a stylistic choice. There is exactly one Summary section in the final report, written once, after your conclusions are already settled. Never write a draft/tentative Summary and then a second "corrected" or "revised" Summary later in the same report — if you catch yourself wanting to revise a tag you already wrote, that means you wrote the Summary too early; go back and fix that single Summary section in place so the report contains only one, final, internally-consistent Summary, not two.
 - **Details**: for each symbol, the fully-resolved chain of references (file:line) found via Grep/Read — every hop backed by its own evidence — and for "No usage found" items, the literal search patterns tried.
 - Do not speculate about runtime behavior, test outcomes, or anything not directly observable from the diff and static references.
+
+## Repo conventions
+
+Use these when judging impact and when proposing a test for an uncovered symbol. Any test you propose must follow them.
+
+- Specs use page objects only. Specs contain no raw locators, so a proposed test must call page object methods rather than locate elements itself.
+- Assertions live in page object methods whose names start with the lowercase prefix expect followed by a capital letter. Action methods do not assert.
+- Known-defect tests call test.fail(true, reason) and assert the correct behavior. Treat them as expected to fail. Flag any change that could affect whether the defect still reproduces, and never propose removing the marker.
+- Checkout data comes from the Faker-backed fixtures (or the factory behind them), never from hardcoded values.
+- Specs for non-default users start logged out by overriding storageState.
