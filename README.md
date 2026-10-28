@@ -75,7 +75,7 @@ Each known-defect test asserts the behavior that should be correct, not the bugg
 
 - **`lint`**: `npm run lint` (ESLint) and `npm run typecheck` (`tsc --noEmit`).
 - **`test`**: the suite split across 4 shards (`--shard=N/4`), run inside the pinned Playwright container; each shard uploads its blob report as `blob-report-N` (kept 1 day).
-- **`merge-reports`**: runs after `test`, merges the shard blob reports into one HTML report, and uploads it as `playwright-html-report` (kept 14 days) only when the `test` job's result was a failure.
+- **`merge-reports`**: runs after `test` (unless the run is cancelled), merges the shard blob reports into one HTML report, and uploads it as `playwright-html-report` (kept 14 days) on both passing and failing runs. Traces, screenshots and videos for failed tests (`retain-on-failure`) travel inside the blob reports, so they are in the merged report. CI retries failed tests twice, so a test that passes on retry is reported as flaky rather than failed; check the report for those.
 
 `main` has branch protection enabled: changes require a pull request, and all 6 jobs (`lint`, `test` for each of the 4 shards, `merge-reports`) must pass before merging.
 
@@ -101,3 +101,14 @@ Copy `.env.example` to `.env` for local runs; CI should inject these as real sec
 Its tools are restricted to `Read`, `Grep`, and `Glob`: no `Bash`. It cannot run `git`, so it cannot compute a diff itself; the caller must supply the diff directly in the prompt.
 
 See [docs/test-impact-reviewer.md](docs/test-impact-reviewer.md) for how the agent's prompt was developed and verified against a mutation test.
+
+### Reproduce the demonstration
+
+[docs/demo/sample-change.diff](docs/demo/sample-change.diff) renames a locator used only inside `openCart()` (transitive impact) and adds a required parameter to `expectCartCount` (direct impact). In a Claude Code session at the repo root, ask: "Use the test-impact-reviewer agent to review this diff" and paste the file's contents. The recorded run, and a grep check of its citations, are in the docs file. It is a single run: it shows the agent working on one input, not a measured accuracy rate, and the agent has been seen to drop citations on other runs (see the mutation history).
+
+## Limitations
+
+- Tests run against the public SauceDemo site, so they depend on its availability and on its demo accounts' behavior. `performance_glitch_user` has a roughly 5-second delay; one CI run saw a timeout on the first inventory assertion after login that has not been reproduced or fully explained (see the comment in `tests/performance-glitch-user.spec.ts`).
+- Known-defect tests (`test.fail`) are expected to fail; if SauceDemo fixes a bug they turn red, by design.
+- Chromium, Firefox and WebKit are all configured and CI runs all three projects (sharded). Local verification of the latest changes was on Chromium, plus a targeted Firefox/WebKit run of the sorting and performance specs. WebKit here is Playwright's WebKit build, not real Safari.
+- Developed and run locally on Windows with Node 20 and in CI on Linux.

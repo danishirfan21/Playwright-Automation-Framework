@@ -95,3 +95,42 @@ All six grading criteria are satisfied in the two most recent runs, each indepen
 **Caveat:** stability across exactly two clean runs is evidence, not a guarantee. Rounds 6 through 10 show the same class of failure (dropped citations, false negatives under list-enumeration load) recurring intermittently across multiple "fixed" states, each time in a new shape. For regular use rather than a one-off review, a built-in self-verification pass (re-grep and count-check before finalizing) or periodic spot-checking of high-call-count citations is recommended, rather than trusting prompt engineering alone to have fully eliminated the failure mode.
 
 **Update after round 12:** a "Repo conventions" section was added to the agent file after round 12. The agent was then re-run 3 times on the same three mutations (a, b, c) and each report was checked against a direct Grep of `tests/`. Measured result: 3 of 3 runs met all six grading criteria, with call-site counts and file:line citations matching ground truth. 2 of 3 runs disclosed in their own report that one or two pasted Grep lines were not literal copies of the tool output (an indentation change, a mistyped tail); the real text was stated and the cited file:line values were correct. No run proposed a test, so adherence to the new conventions was not exercised.
+
+## Reproducible demonstration: direct and transitive impact
+
+This section is separate from the mutation history above and does not change it. It is a single run on a small, real diff, with the output checked against `grep` afterwards.
+
+**Input.** [docs/demo/sample-change.diff](demo/sample-change.diff) is a diff of `pages/InventoryPage.ts` that makes two changes:
+
+1. Renames the locator `cartLink` to `cartIcon`. No spec references the locator; only `openCart()` uses it, so impact is **transitive**.
+2. Adds a required `label: string` parameter to `expectCartCount`. Specs call it directly, so impact is **direct**.
+
+**Invocation.** From a Claude Code session opened at the repo root, ask the sub-agent to review the diff (the agent has no Bash, so paste the diff text into the prompt):
+
+```text
+Use the test-impact-reviewer agent to review this diff for test impact.
+<paste the contents of docs/demo/sample-change.diff>
+```
+
+The diff in the file applies to `InventoryPage.ts` as it stood when the demo was recorded and is not meant to be applied: the agent reads the diff text plus the working tree. Keep the file's copy out of your grep when you check the result (see "Observed output").
+
+**Observed output** (one run, 2026-10-28; Summary section, as returned by the agent):
+
+```text
+- cartLink (removed locator, renamed to cartIcon) — [TRANSITIVE IMPACT]
+- cartIcon (new name of the locator) — [TRANSITIVE IMPACT]
+- openCart() (body changed only) — no tag of its own; middle hop of both chains, 6 direct spec call sites
+- expectCartCount(count, label) (new required parameter) — [LIKELY BREAK]
+```
+
+Chain reported for the rename: `cartLink` -> `openCart()` -> `checkout.spec.ts:10`, `error-user.spec.ts:48`, `problem-user.spec.ts:35`, `cart.spec.ts:16`, `:33`, `:45`. [LIKELY BREAK] call sites reported for `expectCartCount`: `cart.spec.ts:14, 24, 27, 43`, `error-user.spec.ts:22, 36`, `performance-glitch-user.spec.ts:28`, `visual-user.spec.ts:22`.
+
+**Check against ground truth.** After the run, `grep -rn "openCart()" tests` returned 6 lines, `grep -rn "expectCartCount(" tests` returned 8, and `grep -rn "cartLink" tests` returned 0, matching the agent's counts and citations.
+
+**Things this run showed that are worth knowing:**
+
+- The agent's Grep is repo-wide, so it also matched the demo diff file and this document. It filtered those out of its conclusions, but an extra copy of a diff in the tree adds noise to every pasted Grep block. Prefer pasting the diff rather than leaving copies of it lying around.
+- The agent did not check which of the affected specs are `test.fail` known-defect tests (it said so explicitly). `error-user.spec.ts:36` is inside one; the repo conventions section asks the agent to flag that, and it did not in this run. It is one run, so this is a data point, not a rate.
+- Nothing here measures accuracy across runs; the caveat in the verdict above still applies.
+
+**Deterministic reference extraction (considered, not added).** A small script that greps each changed identifier and prints the raw call-site list would remove the "dropped citation" failure mode by construction. It was not added: the agent's failures in this run and in the final mutation rounds were checkable by a plain `grep`, and a script would be a second source of truth to maintain next to the prompt. If a future run drops citations again, that is the cheapest next step.
