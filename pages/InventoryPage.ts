@@ -52,8 +52,8 @@ export class InventoryPage {
     await expect(this.cartBadge).toHaveText(String(count));
   }
 
-  async expectItemVisible(name: string): Promise<void> {
-    await expect(this.itemByName(name)).toBeVisible();
+  async expectItemVisible(name: string, options?: { timeout?: number }): Promise<void> {
+    await expect(this.itemByName(name)).toBeVisible(options);
   }
 
   async expectNamesSorted(direction: 'asc' | 'desc'): Promise<void> {
@@ -73,10 +73,16 @@ export class InventoryPage {
   async expectPricesSorted(direction: 'asc' | 'desc'): Promise<void> {
     const prices = this.page.locator('.inventory_item_price');
     await expect(prices.first()).toBeVisible();
-    const actual = (await prices.allTextContents()).map((p) => Number(p.replace('$', '')));
-    const expected = [...actual].sort((a, b) => a - b);
-    if (direction === 'desc') expected.reverse();
-    expect(actual).toEqual(expected);
+    // Poll the whole list: a one-shot read right after selectOption can capture the
+    // pre-sort order and fail spuriously, or on a stale DOM.
+    await expect
+      .poll(async () => {
+        const actual = (await prices.allTextContents()).map((p) => Number(p.replace('$', '')));
+        const expected = [...actual].sort((a, b) => a - b);
+        if (direction === 'desc') expected.reverse();
+        return actual.join(',') === expected.join(',') ? 'sorted' : `unsorted: ${actual.join(',')}`;
+      })
+      .toBe('sorted');
   }
 
   async expectPrices(expected: Record<string, number>): Promise<void> {

@@ -1,0 +1,23 @@
+diff --git a/pages/InventoryPage.ts b/pages/InventoryPage.ts
+--- a/pages/InventoryPage.ts
++++ b/pages/InventoryPage.ts
+@@ -7,3 +7,3 @@ export class InventoryPage {
+   readonly cartBadge: Locator;
+-  readonly cartLink: Locator;
++  readonly cartIcon: Locator;
+   readonly sortDropdown: Locator;
+@@ -15,3 +15,3 @@ export class InventoryPage {
+     this.cartBadge = page.locator('.shopping_cart_badge');
+-    this.cartLink = page.locator('.shopping_cart_link');
++    this.cartIcon = page.locator('.shopping_cart_link');
+     this.sortDropdown = page.locator('[data-test="product-sort-container"]');
+@@ -38,3 +38,3 @@ export class InventoryPage {
+   async openCart(): Promise<void> {
+-    await this.cartLink.click();
++    await this.cartIcon.click();
+   }
+@@ -46,3 +46,3 @@ export class InventoryPage {
+   // --- assertions ---
+-  async expectCartCount(count: number): Promise<void> {
++  async expectCartCount(count: number, label: string): Promise<void> {
+     if (count === 0) {
